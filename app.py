@@ -13,7 +13,7 @@ def image_to_base64(image):
     return base64.b64encode(buffered.getvalue()).decode()
 
 
-def build_images_data(uploaded_files, layer_name):
+def build_images_data(uploaded_files):
     images_data = []
     for uploaded_file in uploaded_files:
         try:
@@ -25,7 +25,6 @@ def build_images_data(uploaded_files, layer_name):
 
             images_data.append({
                 "src": f"data:image/png;base64,{img_b64}",
-                "layer": layer_name,
             })
         except Exception as e:
             st.error(f"Error processing file {uploaded_file.name}: {e}")
@@ -59,11 +58,14 @@ with top_col:
     )
 
 images_data = []
-images_data.extend(build_images_data(uploaded_files or [], "base"))
-images_data.extend(build_images_data(top_layer_files or [], "top"))
+base_images_data = build_images_data(uploaded_files or [])
+top_images_data = build_images_data(top_layer_files or [])
+images_data.extend(base_images_data)
+images_data.extend(top_images_data)
 
 if images_data:
-    images_json = json.dumps(images_data)
+    base_images_json = json.dumps(base_images_data)
+    top_images_json = json.dumps(top_images_data)
 
     html_code = f"""
         <!DOCTYPE html>
@@ -117,7 +119,8 @@ if images_data:
                 <div id="marquee-track"></div>
             </div>
             <script>
-                const images = {images_json};
+                const baseImages = {base_images_json};
+                const topImages = {top_images_json};
                 const track = document.getElementById('marquee-track');
 
                 // Function to create a block of images
@@ -130,15 +133,36 @@ if images_data:
                     // Let's use a grid that ensures coverage but minimizes heavy overlap
                     const cols = 10; 
                     const rows = 6;
+                    const totalSlots = cols * rows;
+                    const reservedTopSlots = topImages.length > 0 ? 10 : 0;
                     const cellWidth = 100 / cols; // %
                     const cellHeight = 100 / rows; // %
+                    const slotLayers = Array(totalSlots).fill('base');
 
-                    let imgIndex = 0;
+                    if (reservedTopSlots > 0) {{
+                        for (let i = 0; i < reservedTopSlots; i++) {{
+                            const slotIndex = Math.floor((i + 0.5) * totalSlots / reservedTopSlots);
+                            slotLayers[slotIndex] = 'top';
+                        }}
+                    }}
+
+                    let baseImgIndex = 0;
+                    let topImgIndex = 0;
 
                     for (let r = 0; r < rows; r++) {{
                         for (let c = 0; c < cols; c++) {{
-                            const imgData = images[imgIndex % images.length];
-                            imgIndex++;
+                            const slotIndex = (r * cols) + c;
+                            const isTopSlot = slotLayers[slotIndex] === 'top';
+                            const sourceImages = isTopSlot ? topImages : baseImages;
+                            const fallbackImages = isTopSlot ? baseImages : topImages;
+
+                            if (sourceImages.length === 0 && fallbackImages.length === 0) {{
+                                continue;
+                            }}
+
+                            const imgData = sourceImages.length > 0
+                                ? sourceImages[(isTopSlot ? topImgIndex++ : baseImgIndex++) % sourceImages.length]
+                                : fallbackImages[(isTopSlot ? baseImgIndex++ : topImgIndex++) % fallbackImages.length];
 
                             const img = document.createElement('img');
                             img.src = imgData.src;
@@ -162,7 +186,7 @@ if images_data:
                             // Let's just set a min-width to ensure coverage?
                             // Or just use a generous width.
 
-                            const zIndexBase = imgData.layer === 'top' ? 1001 : 1;
+                            const zIndexBase = isTopSlot ? 1001 : 1;
                             const zIndex = zIndexBase + Math.floor(Math.random() * 100);
                             
                             // Position: Center of cell + Jitter
