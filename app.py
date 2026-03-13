@@ -3,41 +3,69 @@ import base64
 from PIL import Image
 import io
 import json
-import random
 
 st.set_page_config(page_title="Collage Viewer", layout="wide")
+
 
 def image_to_base64(image):
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-st.title("Infinite Collage Viewer")
-st.markdown("Upload images to see a dense, sliding infinite collage! Click anywhere to toggle fullscreen.")
 
-uploaded_files = st.file_uploader("Choose images", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
-
-if uploaded_files:
+def build_images_data(uploaded_files, layer_name):
     images_data = []
     for uploaded_file in uploaded_files:
         try:
             image = Image.open(uploaded_file)
-            # Resize if too large
             max_size = (600, 600)
             image.thumbnail(max_size)
-            
+
             img_b64 = image_to_base64(image)
-            
+
             images_data.append({
-                "src": f"data:image/png;base64,{img_b64}"
+                "src": f"data:image/png;base64,{img_b64}",
+                "layer": layer_name,
             })
         except Exception as e:
             st.error(f"Error processing file {uploaded_file.name}: {e}")
 
-    if images_data:
-        images_json = json.dumps(images_data)
+    return images_data
 
-        html_code = f"""
+
+st.title("Infinite Collage Viewer")
+st.markdown(
+    "Upload images to see a dense, sliding infinite collage! "
+    "Use the top layer uploader for images that should always appear above the others. "
+    "Click anywhere to toggle fullscreen."
+)
+
+base_col, top_col = st.columns(2)
+
+with base_col:
+    uploaded_files = st.file_uploader(
+        "Other layers",
+        accept_multiple_files=True,
+        type=["png", "jpg", "jpeg"],
+        key="base_layers",
+    )
+
+with top_col:
+    top_layer_files = st.file_uploader(
+        "Top layer",
+        accept_multiple_files=True,
+        type=["png", "jpg", "jpeg"],
+        key="top_layer",
+    )
+
+images_data = []
+images_data.extend(build_images_data(uploaded_files or [], "base"))
+images_data.extend(build_images_data(top_layer_files or [], "top"))
+
+if images_data:
+    images_json = json.dumps(images_data)
+
+    html_code = f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -134,7 +162,8 @@ if uploaded_files:
                             // Let's just set a min-width to ensure coverage?
                             // Or just use a generous width.
 
-                            const zIndex = Math.floor(Math.random() * 100) + 1;
+                            const zIndexBase = imgData.layer === 'top' ? 1001 : 1;
+                            const zIndex = zIndexBase + Math.floor(Math.random() * 100);
                             
                             // Position: Center of cell + Jitter
                             // Jitter range: +/- 30% of cell size
@@ -184,7 +213,7 @@ if uploaded_files:
         </html>
         """
 
-        st.components.v1.html(html_code, height=800, scrolling=False)
+    st.components.v1.html(html_code, height=800, scrolling=False)
 
 else:
     st.info("Please upload image files to start.")
