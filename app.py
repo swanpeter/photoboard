@@ -34,25 +34,42 @@ def build_images_data(uploaded_files):
 
 st.title("フォトボード")
 st.markdown(
+    """
+    <style>
+    .upload-label {
+        font-size: 28px;
+        color: #ff4b4b;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown(
     "最前面と下のレイヤーで出し分けします。"
 )
 
 base_col, top_col = st.columns(2)
 
 with base_col:
+    st.markdown('<div class="upload-label">下のレイヤー</div>', unsafe_allow_html=True)
     uploaded_files = st.file_uploader(
-        "下のレイヤー",
+        "",
         accept_multiple_files=True,
         type=["png", "jpg", "jpeg"],
         key="base_layers",
+        label_visibility="collapsed",
     )
 
 with top_col:
+    st.markdown('<div class="upload-label">最前面</div>', unsafe_allow_html=True)
     top_layer_files = st.file_uploader(
-        "最前面",
+        "",
         accept_multiple_files=True,
         type=["png", "jpg", "jpeg"],
         key="top_layer",
+        label_visibility="collapsed",
     )
 
 images_data = []
