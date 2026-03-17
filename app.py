@@ -50,7 +50,7 @@ st.markdown(
     "最前面と下のレイヤーで出し分けします。"
 )
 
-base_col, top_col = st.columns(2)
+top_col, base_col = st.columns(2)
 
 with base_col:
     st.markdown('<div class="upload-label">下のレイヤー</div>', unsafe_allow_html=True)
