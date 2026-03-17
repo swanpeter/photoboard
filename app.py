@@ -32,18 +32,16 @@ def build_images_data(uploaded_files):
     return images_data
 
 
-st.title("Infinite Collage Viewer")
+st.title("フォトボード")
 st.markdown(
-    "Upload images to see a dense, sliding infinite collage! "
-    "Use the top layer uploader for images that should always appear above the others. "
-    "Click anywhere to toggle fullscreen."
+    "最前面と下のレイヤーで出し分けします。"
 )
 
 base_col, top_col = st.columns(2)
 
 with base_col:
     uploaded_files = st.file_uploader(
-        "Other layers",
+        "下のレイヤー",
         accept_multiple_files=True,
         type=["png", "jpg", "jpeg"],
         key="base_layers",
@@ -51,7 +49,7 @@ with base_col:
 
 with top_col:
     top_layer_files = st.file_uploader(
-        "Top layer",
+        "最前面",
         accept_multiple_files=True,
         type=["png", "jpg", "jpeg"],
         key="top_layer",
